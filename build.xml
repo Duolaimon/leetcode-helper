@@ -1,0 +1,374 @@
+<?xml version="1.0"?>
+<!--
+======================================================================
+MIT License
+
+Copyright (c) 2018 Wei SHEN 
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+======================================================================
+-->
+<project name="com.ciaoshen.leetcode.helper" basedir="." default="generate">
+
+    <!--
+    ======================================================================
+        DEVELOP DIRECTORY LAYOUT
+    ======================================================================
+    -->
+    <property file="src/main/resources/dev/conf/layout.properties"/>
+
+    <!--
+    ======================================================================
+        DEVELOP CLASSPATH
+    ======================================================================
+    -->
+    <!-- dev mirror, prod mirror, and test mirror are all visiable in develop environment -->
+    <path id="dev.classpath">
+        <pathelement path="${prod.build}"/>
+        <pathelement path="${dev.build}"/>
+        <pathelement path="${test.build}"/>
+        <pathelement path="${dev.res.conf}"/> <!-- log4j.properties must locate directly under one of the classpath -->
+        <pathelement path="${prod.res}"/>
+        <fileset dir="${vendor.lib}">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+
+    <!-- only prod mirror and test mirror are visible in product environment -->
+    <path id="prod.classpath">
+        <pathelement path="${prod.build}"/>
+        <pathelement path="${test.build}"/>
+        <pathelement path="${prod.res}"/>
+        <fileset dir="${lib}">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+
+    <!-- simulate user working environment -->
+    <path id="release.classpath">
+        <pathelement path="${prod.res}"/>
+        <fileset dir="${lib}">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+    <!-- only install directory and test mirror is visable in release test -->
+    <path id="install.classpath">
+        <pathelement path="${test.build}"/>
+        <fileset dir="${install.lib}">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+
+    <!--
+    ======================================================================
+        DEVELOP COMPILE
+    ======================================================================
+    -->
+    <!-- com.ciaoshen.leetcode.helper -->
+    <property name="pck.builder" value="com.ciaoshen.leetcode.helper"/>
+    <property name="subpath.builder" value="com/ciaoshen/leetcode/helper"/>
+    <!-- com.ciaoshen.leetcode.util -->
+    <property name="pck.util" value="com.ciaoshen.leetcode.util"/>
+    <property name="subpath.util" value="com/ciaoshen/leetcode/util"/>
+    <!-- source code collection -->
+    <patternset id="sourcecode">
+        <include name="${subpath.builder}/*.java"/>
+        <include name="${subpath.util}/*.java"/>
+    </patternset>
+    <patternset id="not.sourcecode">
+        <exclude name="${subpath.builder}/*.java"/>
+        <exclude name="${subpath.util}/*.java"/>
+    </patternset>
+
+    <!-- compile main source code -->
+    <target name="compile.src">
+        <echo>Compiling source under ${src} ... </echo>
+        <mkdir dir="${prod.build}"/>
+        <javac destdir="${prod.build}" srcdir="${src}" debug="on" includeantruntime="false">
+            <classpath refid="dev.classpath"/>
+            <patternset refid="sourcecode"/>
+        </javac>
+    </target>
+
+    <!-- compile junit test code -->
+    <target name="compile.test">
+        <echo>Compiling source under ${test.src} ... </echo>
+        <mkdir dir="${test.build}"/>
+        <javac destdir="${test.build}" srcdir="${test.src}" debug="on" includeantruntime="false">
+            <classpath refid="dev.classpath"/>
+            <patternset refid="sourcecode"/>
+        </javac>
+    </target>
+
+
+    <!--
+    ======================================================================
+        TEST IN DEVELOP ENVIRONMENT
+    ======================================================================
+    -->
+    <!-- banding log4j as logger (log4j.properties must locate directly under one of the classpath -->
+    <property name="listener" value="org.apache.tools.ant.listener.Log4jListener"/>
+
+    <!-- launch junit test for each class -->
+    <target name="junit" depends="clean, compile.src, compile.test">
+        <echo>Launch junit test ... </echo>
+        <junit haltonfailure="true">
+            <classpath refid="dev.classpath"/>
+            <formatter type="plain" usefile="false"/>
+            <batchtest>
+                <fileset dir="${test.src}">
+                    <include name="**/*Test.java"/>
+                </fileset>
+            </batchtest>
+        </junit>
+        <antcall target="clean"/>
+    </target>
+
+    <!-- run ProblemBuilder main() method in develop environment -->
+    <property file="${prod.res}/problem.properties"/>
+    <property name="main.entry" value="${pck.builder}.ProblemBuilder"/>
+
+    <target name="test" depends="clean, compile.src">
+        <echo>Running ProblemBuilder.main() method!</echo>
+        <java classname="${main.entry}">
+            <arg value="${basedir}"/>
+            <arg value="${problem.name}"/>
+            <arg value="${problem.pck}"/>
+            <arg value="${problem.util}"/>
+            <arg value="${problem.members}"/>
+            <classpath refid="dev.classpath"/>
+        </java>
+        <antcall target="clean"/>
+    </target>
+
+    <!-- clean files generated during the test -->
+    <target name="clean">
+        <echo>Clean all generated .class file and .java skeleton.</echo>
+        <delete dir="${build}"/>
+        <delete includeemptydirs="true">
+            <fileset dir="${src}">
+                <patternset refid="not.sourcecode"/>
+            </fileset>
+            <fileset dir="${test.src}">
+                <patternset refid="not.sourcecode"/>
+            </fileset>
+        </delete>
+    </target> 
+
+
+
+    <!--
+    ======================================================================
+        DEPLOY
+    ======================================================================
+    -->
+    <!-- deploy directory -->
+    <property name="library.name" value="leetcode-helper"/>
+    <property name="jar.name" value="${library.name}.jar"/>
+    <property name="jar.file" value="${lib}/${jar.name}"/>
+
+    <!-- packaging program into leetcode-helper.jar file -->
+    <target name="jar" depends="clean.jar, clean, compile.src">
+        <mkdir dir="${lib}"/>
+        <jar destfile="${jar.file}">
+            <fileset dir="${prod.build}">
+                <include name="com/ciaoshen/leetcode/helper/*.class"/>
+                <include name="com/ciaoshen/leetcode/util/*.class"/>
+            </fileset>
+            <fileset dir="${prod.res}">
+                <exclude name="demo/"/>
+                <exclude name="*.*"/>
+            </fileset>
+            <zipgroupfileset dir="${vendor.lib}"> 
+                <include name="*.jar"/> 
+            </zipgroupfileset>
+        </jar>
+        <echo>${jar.file} generated!</echo>
+        <antcall target="clean"/>
+    </target>
+
+    <!-- clean leetcode-helper.jar -->
+    <target name="clean.jar">
+        <delete file="${jar.file}" failonerror="false"/>
+        <echo>${jar.file} deleted!</echo>
+    </target>
+
+    <!-- run with product environment -->
+    <target name="test.jar" depends="jar">
+        <echo>Running ProblemBuilder from main() method!</echo>
+        <java classname="${main.entry}">
+            <classpath refid="release.classpath"/>
+            <arg value="${basedir}"/>
+            <arg value="${problem.name}"/>
+            <arg value="${problem.pck}"/>
+            <arg value="${problem.util}"/>
+            <arg value="${problem.members}"/>
+        </java>
+        <antcall target="clean.jar"/>
+    </target>
+
+    <!-- deploy destination on my laptop -->
+    <property name="deploy.root" value="/Users/Wei/github/leetcode/java"/>
+    <!-- deploy -->
+    <target name="deploy" depends="clean.deploy, jar">
+        <echo>Installing helper to leetcode java root.</echo>
+        <mkdir dir="${deploy.root}"/>
+        <copy todir="${deploy.root}">
+            <fileset dir="${prod.res}" includes="*.*"/> 
+        </copy>
+        <mkdir dir="${deploy.root}/${lib}"/>
+        <copy file="${jar.file}" todir="${deploy.root}/${lib}"/>
+        <antcall target="clean.jar"/>
+    </target>
+
+    <!-- clean last deployment -->
+    <target name="clean.deploy">
+        <echo>Uninstalling ${deploy.name} from leetcode java root ... </echo>
+        <delete includeemptydirs="true" failonerror="false">
+            <fileset dir="${deploy.root}">
+                <include name="*.*"/>
+            </fileset>
+            <file name="${deploy.root}/${jar.file}"/>
+        </delete>
+    </target>
+
+
+    <!--
+    ======================================================================
+        RELEASE
+    ======================================================================
+    -->
+    <!-- release directory -->
+    <property name="release.version" value="v0.6"/>
+    <property name="release.dir" value="${release}/${release.version}"/>
+    <property name="release.name" value="${library.name}-${release.version}"/>
+
+    <!-- release .tar, tar.gz, .zip -->
+    <target name="release" 
+        depends="clean.release, release.prepare, 
+                release.zip,
+                release.tar,
+                release.finish">
+        <echo>New release ${release.name} created under ${release.root}/${release.version}</echo>
+    </target>
+
+    <!-- copy files to be released into release directory -->
+    <property name="release.prepare.dir" value="${release}/prepare"/>
+    <target name="release.prepare" depends="jar">
+        <mkdir dir="${release.prepare.dir}/demo"/>
+        <copy todir="${release.prepare.dir}/demo">
+            <fileset dir="${prod.res.demo}"/>
+        </copy>
+        <mkdir dir="${release.prepare.dir}/lib"/>
+        <copy file="${jar.file}" todir="${release.prepare.dir}/lib"/>
+        <copy todir="${release.prepare.dir}">
+            <fileset dir="${prod.res}">
+                <include name="*.*"/>
+                <include name="LICENSE"/>
+            </fileset>
+            <!-- <fileset dir="${prod.res.bin}"/> -->
+        </copy>
+        <mkdir dir="${release.dir}"/>
+    </target>
+    
+    <!-- achieve to tar -->
+    <target name="release.tar">
+        <tar destfile="${release.dir}/${release.name}.tar">
+            <tarfileset dir="${release.prepare.dir}"/>
+        </tar>
+        <gzip destfile="${release.dir}/${release.name}.tar.gz" src="${release.dir}/${release.name}.tar"/>
+    </target>
+
+    <!-- compress into zip -->
+    <target name="release.zip">
+        <zip destfile="${release.dir}/${release.name}.zip" update="true">
+            <zipfileset dir="${release.prepare.dir}"/>
+        </zip>
+    </target>
+
+    <!-- clean up redundant files -->
+    <target name="release.finish">
+        <echo>Clean up release prepare directory.</echo>
+        <delete dir="${release.prepare.dir}" includeemptydirs="true" failonerror="false"/>
+        <antcall target="clean.jar"/>
+    </target>
+
+    <!-- delete last release -->
+    <target name="clean.release">
+        <echo>Delete all release achieves.</echo>
+        <delete dir="${release.dir}" includeemptydirs="true" failonerror="false"/>
+    </target>
+
+
+    <!--
+    ======================================================================
+        RELEASE TEST (TRAVIS CI)
+    ======================================================================
+    -->
+    <target name="test.install" depends="unarchieve">
+        <condition property="isWindows">
+            <os family="windows"/>
+        </condition>
+        <condition property="isUnix">
+            <os family="unix"/>
+        </condition>
+        <antcall target="test.install.windows"/>
+        <antcall target="test.install.unix"/>
+        <available file="${install}/${src}/${problem.pck}/${problem.name}" type="dir" property="generate.fail"/>
+        <available file="${install}/${src}/${problem.pck}/${problem.name}/Solution.java" property="generate.fail"/>
+        <available file="${install}/${src}/${problem.pck}/${problem.name}/Solution1.java" property="generate.fail"/>
+        <available file="${install}/${src}/${problem.pck}/${problem.name}/Solution2.java" property="generate.fail"/>
+        <available file="${install}/${src}/${problem.pck}/${problem.name}/Tester.java" property="generate.fail"/>
+        <available file="${install}/${src}/${problem.pck}/${problem.name}/TesterRunner.java" property="generate.fail"/>
+        <fail if="generate.fail">Template not generated correctly!</fail>
+        <echo>Template generated correctly!</echo>
+        <antcall target="clean.install"/>
+    </target> 
+
+    <target name="test.install.windows" if="isWindows">
+        <exec executable="test.bat"/>
+    </target>
+
+    <target name="test.install.unix" if="isUnix">
+        <exec executable="test"/>
+    </target>
+        
+    <target name="unarchieve" depends="clean.install">
+        <unzip src="${release.dir}/${release.name}.zip" dest="${install}"/>
+        <!-- <exec executable="chmod">
+            <arg value="+x"/>
+            <arg value="install/generate"/>
+            <arg value="install/compile"/>
+            <arg value="install/run"/>
+            <arg value="install/clean"/>
+        </exec> -->
+    </target>
+    
+    <target name="clean.install">
+        <echo>Clean up install directory.</echo>
+        <delete dir="${install}" includeemptydirs="true" failonerror="false"/>
+    </target>
+    <!--
+    ======================================================================
+        CLEAN EVERYTHING
+    ======================================================================
+    -->
+    <target name="clean.all" depends="clean, clean.jar, clean.release, clean.install"/>
+
+</project>

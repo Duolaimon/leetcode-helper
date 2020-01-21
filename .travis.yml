@@ -1,0 +1,10 @@
+language: java
+
+install: true
+
+os:
+- linux
+#- windows
+
+script:
+- ant test.install
