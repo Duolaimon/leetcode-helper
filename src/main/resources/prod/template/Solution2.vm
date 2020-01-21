@@ -16,10 +16,7 @@ import ${util}.*;
  */
 class Solution2 implements Solution {
 
-    public ${resultType} ${methodName}(
-            #foreach($type in $types)
-            type para$velocityCount,
-            #end){
+    public ${resultType} ${methodName}(#foreach(${type} in ${types})${type} para${foreach.count}#if(${foreach.count} != $types.size()), #end#end){
         return null;
     }
 

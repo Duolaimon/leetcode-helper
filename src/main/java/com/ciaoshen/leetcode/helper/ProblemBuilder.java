@@ -1,18 +1,18 @@
 /**
  * MIT License
- *
- * Copyright (c) 2018 Wei SHEN 
-
+ * <p>
+ * Copyright (c) 2018 Wei SHEN
+ * <p>
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
-
+ * <p>
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
-
+ * <p>
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,7 +26,6 @@ package com.ciaoshen.leetcode.helper;
 import java.util.Properties;
 import java.util.List;
 
-import java.io.File;
 import java.io.Writer;
 import java.io.StringWriter;
 import java.io.IOException;
@@ -63,6 +62,9 @@ public class ProblemBuilder {
     private static final String PACKAGE = "pck";
     private static final String UTIL = "util";
     private static final String MEMBERS = "members";
+    private static final String METHOD_NAME = "methodName";
+    private static final String TYPES = "types";
+    private static final String RESULT_TYPE = "resultType";
     /** extension of java source file */
     private static final String JAVA_EXP = "java";
 
@@ -72,6 +74,9 @@ public class ProblemBuilder {
     String pck;             // args[2]: package name
     String util;            // args[3]: leetcode data structure library
     String members;         // args[4]: members of a class
+    String methodName;
+    String types;
+    String resultType;
 
     // project layout configuration extracted from layout.properties
     String src;             // source directory (relative to project root)
@@ -87,8 +92,8 @@ public class ProblemBuilder {
 
     /** collect parameters */
     public ProblemBuilder(String[] args) {
-        if (args.length != 5) {
-            throw new IllegalArgumentException("Must have 5 arguments!");
+        if (args.length != 8) {
+            throw new IllegalArgumentException("Must have 8 arguments!");
         }
         // user provides 4 arguments
         root = args[0];             // such as: /Users/Wei/github/leetcode-helper
@@ -96,6 +101,9 @@ public class ProblemBuilder {
         pck = args[2];              // such as: com.ciaoshen.leetcode
         util = args[3];             // such as: com.ciaoshen.leetcode.util
         members = args[4];          // such as: int add(int a, int b) {}
+        methodName = args[5];
+        types = args[6];
+        resultType = args[7];
         if (LOGGER.isDebugEnabled()) {
             for (int i = 0; i < args.length; i++) {
                 LOGGER.debug("arg[{}] = {}", i, args[i]);
@@ -111,7 +119,7 @@ public class ProblemBuilder {
         }
 
         // construct full-directory 
-        pckPath = pck.replaceAll("\\.","/"); // package sub-path with '/' substituted for '.'
+        pckPath = pck.replaceAll("\\.", "/"); // package sub-path with '/' substituted for '.'
         solutionDir = root + "/" + src + "/" + pckPath + "/" + problemName;
         testDir = root + "/" + testSrc + "/" + pckPath + "/" + problemName;
         if (LOGGER.isDebugEnabled()) {
@@ -146,6 +154,9 @@ public class ProblemBuilder {
             context.put(PACKAGE, pck);
             context.put(UTIL, util);
             context.put(MEMBERS, members);
+            context.put(RESULT_TYPE, resultType);
+            context.put(TYPES, typeArray(types));
+            context.put(METHOD_NAME, methodName);
             Writer sw = new StringWriter();
             t.merge(context, sw);
             Writer fw = getFileWriter(buildSourcePath(template));
@@ -160,17 +171,21 @@ public class ProblemBuilder {
         }
     }
 
+    private String[] typeArray(String types) {
+        return types.split(",");
+    }
+
     /**
      * Construct full path of generated skeleton file.
      * Ex: given "/template/Solution.vm"
      * Absolute path = "/Users/Wei/github/leetcode/main/java/com/ciaoshen/leetcode/two_sum/Solution.java"
      * @param path velocity template file path (relative to classpath)
-     @ @return absolute path of generated solution skeleton
+    @ @return absolute path of generated solution skeleton
      */
     String buildSourcePath(String path) {
-        String fullFileName = path.substring(path.lastIndexOf("/") + 1, path.length()); 
-        String fileName = fullFileName.substring(0, fullFileName.indexOf(".")); 
-        if (fileName.length()>= 4 && fileName.substring(0,4).equals("Test")) {
+        String fullFileName = path.substring(path.lastIndexOf("/") + 1, path.length());
+        String fileName = fullFileName.substring(0, fullFileName.indexOf("."));
+        if (fileName.length() >= 4 && fileName.substring(0, 4).equals("Test")) {
             return testDir + "/" + fileName + "." + JAVA_EXP;
         } else {
             return solutionDir + "/" + fileName + "." + JAVA_EXP;
@@ -183,7 +198,7 @@ public class ProblemBuilder {
      * @return A FileWriter decorated by BufferedWriter
      */
     Writer getFileWriter(String path) {
-        Path directory = Paths.get(path.substring(0, path.lastIndexOf("/"))); 
+        Path directory = Paths.get(path.substring(0, path.lastIndexOf("/")));
         try {
             if (!Files.exists(directory)) {
                 Files.createDirectories(directory);
@@ -199,7 +214,7 @@ public class ProblemBuilder {
     static final Logger LOGGER = LoggerFactory.getLogger(ProblemBuilder.class);
 
     public static void main(String[] args) {
-        if (args.length != 5) {
+        if (args.length != 8) {
             throw new IllegalArgumentException("Must have 5 arguments!");
         }
         // use log4j as Logger implementaion

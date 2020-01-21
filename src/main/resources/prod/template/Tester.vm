@@ -59,25 +59,23 @@ public class Tester {
      * You can change the type of parameters
      */
     
-    #foreach($type in $types)
-            private type para$velocityCount;
+    #foreach(${type} in ${types})
+    private ${type} para${foreach.count};
     #end
-    private $resultType expected;                    // parameter 4 (expected answer)
-    // private Object para1;                       // parameter 1
-    // private Object para2;                       // parameter 2
-    // private Object para3;                       // parameter 3
+    private ${resultType} expected;                    // parameter 4 (expected answer)
 
     /** This constructor must be provided to run parameterized test. */
     public Tester(
-            #foreach($type in $types)
-            type para$velocityCount,
+            #foreach(${type} in ${types})
+            ${type} para${foreach.count},
             #end
-            $resultType expected
+            ${resultType} expected
         ) {
            // initialize test parameters
-    //     this.para1 = para1; 
-    //     this.para2 = para2;
-    //     this.expected = expected;
+        #foreach(${type} in ${types})
+            this.para${foreach.count} = para${foreach.count};
+        #end
+         this.expected = expected;
     }
 
     /** Execute before each test method in this class is executed. */
@@ -88,12 +86,12 @@ public class Tester {
     @Test
     public void test() {
         //
-        $resultType actual = solution.$methodName(para1, para2);
+        ${resultType} actual = solution.${methodName}(#foreach(${type} in ${types})para${foreach.count}#if(${foreach.count} != $types.size()), #end#end);
         
         assertThat(actual, is(equalTo(expected)));
         
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("$methodName() pass unit test!");
+            LOGGER.debug("${methodName}() pass unit test!");
         }
     }
 

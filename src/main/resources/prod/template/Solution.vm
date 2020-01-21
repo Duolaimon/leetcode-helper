@@ -1,6 +1,6 @@
 /**
- * Leetcode - ${problem}
- */
+* Leetcode - ${problem}
+*/
 package ${pck}.${problem};
 import java.util.*;
 import ${util}.*;
@@ -10,11 +10,8 @@ import org.slf4j.LoggerFactory;
 
 interface Solution {
 
-    // use this Object to print the log (call from slf4j facade)
-    static Logger log = LoggerFactory.getLogger(Solution.class);
-    
-    ${resultType} ${methodName}(
-            #foreach($type in $types)
-            type para$velocityCount,
-            #end);
+// use this Object to print the log (call from slf4j facade)
+static Logger log = LoggerFactory.getLogger(Solution.class);
+
+    ${resultType} ${methodName}(#foreach(${type} in ${types})${type} para${foreach.count}#if(${foreach.count} != $types.size()), #end#end);
 }
