@@ -23,6 +23,7 @@
  */
 package com.ciaoshen.leetcode.helper;
 
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.List;
 
@@ -51,11 +52,15 @@ import org.slf4j.LoggerFactory;
  */
 public class ProblemBuilder {
 
-    /** ProblemBuilder knows only the name of the required properties files.
-     * It doesn't know where to find them, but PropertyScanner knows. */
+    /**
+     * ProblemBuilder knows only the name of the required properties files.
+     * It doesn't know where to find them, but PropertyScanner knows.
+     */
     private static final String LAYOUT = "layout.properties";
     private static final String LOG4J = "log4j.properties";
-    /** key names used in properties file */
+    /**
+     * key names used in properties file
+     */
     private static final String SRC = "src";
     private static final String TEST_SRC = "test.src";
     private static final String PROBLEM = "problem";
@@ -65,7 +70,9 @@ public class ProblemBuilder {
     private static final String METHOD_NAME = "methodName";
     private static final String TYPES = "types";
     private static final String RESULT_TYPE = "resultType";
-    /** extension of java source file */
+    /**
+     * extension of java source file
+     */
     private static final String JAVA_EXP = "java";
 
     // user provides 5 important arguments to describe a problem
@@ -75,7 +82,7 @@ public class ProblemBuilder {
     String util;            // args[3]: leetcode data structure library
     String members;         // args[4]: members of a class
     String methodName;
-    String types;
+    String[] types;
     String resultType;
 
     // project layout configuration extracted from layout.properties
@@ -90,7 +97,9 @@ public class ProblemBuilder {
     // Velocity
     VelocityEngine ve;
 
-    /** collect parameters */
+    /**
+     * collect parameters
+     */
     public ProblemBuilder(String[] args) {
         if (args.length != 8) {
             throw new IllegalArgumentException("Must have 8 arguments!");
@@ -101,9 +110,7 @@ public class ProblemBuilder {
         pck = args[2];              // such as: com.ciaoshen.leetcode
         util = args[3];             // such as: com.ciaoshen.leetcode.util
         members = args[4];          // such as: int add(int a, int b) {}
-        methodName = args[5];
-        types = args[6];
-        resultType = args[7];
+        splitMembers(members);
         if (LOGGER.isDebugEnabled()) {
             for (int i = 0; i < args.length; i++) {
                 LOGGER.debug("arg[{}] = {}", i, args[i]);
@@ -135,7 +142,9 @@ public class ProblemBuilder {
         ve.init();
     }
 
-    /** Velociy load and fill templates */
+    /**
+     * Velociy load and fill templates
+     */
     public void writeTemplates() {
         List<String> templates = TemplateSeeker.getTemplates();
         if (LOGGER.isDebugEnabled()) {
@@ -155,7 +164,7 @@ public class ProblemBuilder {
             context.put(UTIL, util);
             context.put(MEMBERS, members);
             context.put(RESULT_TYPE, resultType);
-            context.put(TYPES, typeArray(types));
+            context.put(TYPES, types);
             context.put(METHOD_NAME, methodName);
             Writer sw = new StringWriter();
             t.merge(context, sw);
@@ -171,16 +180,14 @@ public class ProblemBuilder {
         }
     }
 
-    private String[] typeArray(String types) {
-        return types.split(",");
-    }
 
     /**
      * Construct full path of generated skeleton file.
      * Ex: given "/template/Solution.vm"
      * Absolute path = "/Users/Wei/github/leetcode/main/java/com/ciaoshen/leetcode/two_sum/Solution.java"
+     *
      * @param path velocity template file path (relative to classpath)
-    @ @return absolute path of generated solution skeleton
+     * @ @return absolute path of generated solution skeleton
      */
     String buildSourcePath(String path) {
         String fullFileName = path.substring(path.lastIndexOf("/") + 1, path.length());
@@ -193,8 +200,25 @@ public class ProblemBuilder {
     }
 
     /**
+     * int[] nextGreaterElement(int[] nums1, int[] nums2)
+     */
+    private void splitMembers(String members) {
+        String[] split = members.split("\\(");
+        String[] s = split[0].split(" ");
+        resultType = s[0];
+        methodName = s[1];
+        String[] args = split[1].substring(0, split[1].length() - 1).split(",");
+        List<String> types = new ArrayList<>();
+        for (String arg : args) {
+            types.add(arg.trim().split(" ")[0]);
+        }
+        this.types = types.toArray(new String[0]);
+    }
+
+    /**
      * Get a FileWriter decorated by BufferedWriter (using java.nio)
-     * @param  path absolute path of that file
+     *
+     * @param path absolute path of that file
      * @return A FileWriter decorated by BufferedWriter
      */
     Writer getFileWriter(String path) {
